@@ -27,6 +27,18 @@ all the items in the trash for you.
 confirmation. If `--force` is passed as the first argument, the trash
 will be emptied without prompting for confirmation.
 
+## clearing on shutdown
+
+If you want to clear the trash every time you shutdown, you can add
+the following line to your `~/.bashrc`
+```
+alias shutdown='empty-trash --force && shutdown
+```
+or just append it to the file
+```
+echo "alias shutdown=empty-trash --force && shutdown" >> ~/.bashrc
+```
+
 ## installation
 
 The best way to install `bash-trash` is to source it into your `~/.bashrc`.
