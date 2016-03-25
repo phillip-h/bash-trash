@@ -1,0 +1,240 @@
+#!bin/sh
+#
+# bash-trash version 1.0
+# written by phillip-h
+# repository -- github.com/phillip-h/bashtrash
+###############################################
+
+########################
+# configuration options
+
+# sets the location of the trash
+# directory. defaults to ~/temp
+# this path should be expressed 
+# relative to root (/) or home ($HOME)
+__BT_TRASH_DIR="$HOME/temp"
+
+# sets how verbose logging should be,
+# valid levels are:
+# quiet -- minimal logging
+# normal -- a normal amount of logging
+# verbose -- verbose logging
+__BT_LOG_LEVEL="normal"
+
+# sets if colored output should be
+# allowed. valid values are "yes" and "no"
+__BT_COLORS="yes"
+
+# sets the command to be used to
+# empty the trash.
+__BT_RM="rm -rf"
+
+# sets the argument to append to the
+# remove command if verbose mode
+# is enabled
+__BT_RM_V=" -v"
+
+############
+# constants
+__BT_ANSI_RED="\e[1;31m"
+__BT_ANSI_BLUE="\e[1;34m"
+__BT_ANSI_RESET="\e[0m"
+
+#######################################
+# make sure the trash directory exists
+if [ ! -d "$__BT_TRASH_DIR" ]; then
+    if [ ! "$__BT_LOG_LEVEL" = "quite" ]; then
+        printf "trash directory $__BT_TRASH_DIR does not exist, "
+        printf "creating it.\n"
+    fi
+    mkdir -p "$__BT_TRASH_DIR"
+fi
+
+################################
+# validate configuration values
+if [ ! "$__BT_LOG_LEVEL" = "quiet" ] &&
+   [ ! "$__BT_LOG_LEVEL" = "normal" ] &&
+   [ ! "$__BT_LOG_LEVEL" = "verbose" ]; then
+   printf "!! warning -- unknown bash trash log level '$__BT_LOG_LEVEL'!\n"
+   printf "              should be one of [quiet, normal, verbose].\n"
+fi
+
+if [ ! "$__BT_COLORS" = "yes" ] &&
+   [ ! "$__BT_COLORS" = "no" ]; then
+    printf "!! warning -- unknown bash trash color setting";
+    printf " '$__BT_COLORS'!\n"
+    printf "              should be either 'yes' or 'no'.\n"
+fi
+
+#####################
+# program functions
+
+trash()
+{
+    if [ "$#" = 0 ]; then
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RED"            
+        fi
+        printf "error -- no files provided\n"
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RESET"
+        fi
+        return -1
+    fi
+
+    local count=0
+
+    for file in "$@"; do
+        if [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+            printf "moving $file to $__BT_TRASH_DIR\n"
+        fi
+        local newfile=$(cd $(dirname "$file") && pwd -P)/$(basename "$file")
+        newfile=${newfile////\\\\\\}
+        mv "$file" "$__BT_TRASH_DIR/$newfile"
+        if [ $? = 0 ]; then
+            ((count++))
+        else
+            if [ "$__BT_COLORS" = "yes" ]; then
+                printf "$__BT_ANSI_RED"            
+            fi
+            printf "failed to move $file to trash!\n"
+            if [ "$__BT_COLORS" = "yes" ]; then
+                printf "$__BT_ANSI_RESET"
+            fi
+        fi
+    done;
+
+    if [ "$__BT_LOG_LEVEL" = "normal" ] || 
+       [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+        printf "trashed $count files.\n"
+    fi
+}
+
+untrash()
+{
+    if [ "$#" = 0 ]; then
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RED"            
+        fi
+        printf "error -- no files provided\n"
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RESET"
+        fi
+        return -1
+    fi
+    
+    local count=0
+
+    for file in "$@"; do
+        for trashfile in "$__BT_TRASH_DIR"/*; do
+            local tmpfile=${trashfile##*/}
+            tmpfile=${tmpfile##*\\\\\\}
+            if [ "$file" = "$tmpfile" ]; then
+                tmpfile=${trashfile##*/};
+                tmpfile=${tmpfile//\\\\\\//}
+                if [ $? = 0 ]; then
+                    mv "$trashfile" "$tmpfile"
+                    ((count++))
+                    if [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+                        printf "restored $trashfile to $tmpfile\n"
+                    fi
+                    continue 2
+                else
+                    if [ "$__BT_COLORS" = "yes" ]; then
+                        printf "$__BT_ANSI_RED"            
+                    fi
+                    printf "error restoring $trashfile!\n"
+                    if [ "$__BT_COLORS" = "yes" ]; then
+                        printf "$__BT_ANSI_RESET"
+                    fi
+                fi
+            fi
+        done
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RED"            
+        fi
+        printf "no item '$file' in the trash!\n"
+        if [ "$__BT_COLORS" = "yes" ]; then
+            printf "$__BT_ANSI_RESET"
+        fi
+    done
+
+    if [ "$__BT_LOG_LEVEL" = "normal" ] || 
+       [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+        printf "untrashed $count files.\n"
+    fi
+}
+
+empty-trash()
+{
+    local remove="$__BT_RM"
+    if [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+        remove="$VERBOSE$__BT_RM_V"
+    fi
+
+    if [ "$#" = 1 ]; then
+        if [ "$1" = "--force" ]; then
+            eval "$remove $__BT_TRASH_DIR/*"
+            return 0;
+        fi
+    fi
+    
+    if [ "$__BT_COLORS" = "yes" ]; then
+        printf "$__BT_ANSI_RED"            
+    fi
+    printf "==== empty trash ====\n"
+    if [ "$__BT_COLORS" = "yes" ]; then
+        printf "$__BT_ANSI_RESET"
+    fi
+    
+    read -p "empty trash? [Y/n] > " RESP
+    if [ "$RESP" = "Y" ]; then
+        eval "$remove $__BT_TRASH_DIR/*"
+        if [ "$__BT_LOG_LEVEL" = "normal" ] || 
+           [ "$__BT_LOG_LEVEL" = "verbose" ]; then
+           printf "emptied trash.\n"
+        fi
+    else
+        printf "abort.\n";
+    fi
+    
+}
+
+##############
+# completions
+
+_empty-trash()
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    
+    opts="--force"
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+complete -F _empty-trash empty-trash
+
+_untrash()
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+             
+    local files=()
+
+    for file in "$__BT_TRASH_DIR"/*; do
+        local tmpfile=${file##*/};
+        tmpfile=${file##*\\\\\\}
+        if [[ "$tmpfile" = "$2"* ]]; then
+            files+=("$tmpfile")
+        fi
+    done
+
+    COMPREPLY=( "${files[@]}" )
+    return 0
+}
+complete -F _untrash untrash
