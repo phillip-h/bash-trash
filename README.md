@@ -6,7 +6,9 @@ bash functions for simple CLI trash on \*NIX systems
 `bash-trash` is a script that allows you to manage a trash directory
 from the command line. Functions are provided for moving files to the
 trash, restoring them from the trash, and emptying the trash. It is 
-simple, lightweight, and fairly configurable.
+simple, lightweight, and fairly configurable. Contrary to the name,
+`bash-trash` should work with other shells, though this has not been
+tested.
 
 ## usage
 
