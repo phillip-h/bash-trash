@@ -225,10 +225,10 @@ _untrash()
     prev="${COMP_WORDS[COMP_CWORD-1]}"
              
     local files=()
-
+    
     for file in "$__BT_TRASH_DIR"/*; do
-        if [ "$file" = "$__BT_TRASH_DIR"/* ]; then
-            break
+        if [ "$file" = "$__BT_TRASH_DIR/*" ]; then
+            continue
         fi
         local tmpfile=${file##*/};
         tmpfile=${file##*\\\\\\}
