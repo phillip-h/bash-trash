@@ -227,6 +227,9 @@ _untrash()
     local files=()
 
     for file in "$__BT_TRASH_DIR"/*; do
+        if [ "$file" = "$__BT_TRASH_DIR"/* ]; then
+            break
+        fi
         local tmpfile=${file##*/};
         tmpfile=${file##*\\\\\\}
         if [[ "$tmpfile" = "$2"* ]]; then
