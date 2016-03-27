@@ -1,6 +1,8 @@
 # bash-trash
 bash functions for simple CLI trash on \*NIX systems
 
+![example usage of bash-trash](example.gif)
+
 ## about
 
 `bash-trash` is a script that allows you to manage a trash directory
